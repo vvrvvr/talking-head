@@ -2,7 +2,7 @@
  * Keyboard → random blend shapes
  *
  * Config (edit here):
- * - shapesPerKey: how many morphs to claim per held key
+ * - shapesPerKeyMin / shapesPerKeyMax: random morph count per held key (inclusive)
  * - pressDuration: seconds to ease toward random targets (0–100)
  * - releaseDuration: seconds to ease back to rest on keyup
  * - ease: easing function used for both directions
@@ -15,7 +15,8 @@
  */
 
 export const BLEND_CONFIG = {
-  shapesPerKey: 5,
+  shapesPerKeyMin: 5,
+  shapesPerKeyMax: 11,
   pressDuration: 0.1,
   releaseDuration: 0.25,
   valueMin: 0,
@@ -92,7 +93,10 @@ export function createBlendKeyController(root, config = BLEND_CONFIG) {
     const free = [...runtime.values()].filter((ch) => ch.heldBy === null);
     if (free.length === 0) return true;
 
-    const count = Math.min(cfg.shapesPerKey, free.length);
+    const min = Math.max(0, Math.floor(cfg.shapesPerKeyMin));
+    const max = Math.max(min, Math.floor(cfg.shapesPerKeyMax));
+    const want = min + Math.floor(Math.random() * (max - min + 1));
+    const count = Math.min(want, free.length);
     const picked = pickRandom(free, count);
     const now = performance.now() / 1000;
     const ids = [];
