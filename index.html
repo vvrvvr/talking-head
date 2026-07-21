@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Говорящая голова</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Share+Tech+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three/three.module.js",
+          "three/addons/": "./vendor/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app">
+      <div class="schematic-wash" aria-hidden="true"></div>
+      <div class="grid-overlay" aria-hidden="true"></div>
+      <div class="scanline" aria-hidden="true"></div>
+
+      <div class="frame" aria-hidden="true">
+        <span class="frame__corner frame__corner--tl"></span>
+        <span class="frame__corner frame__corner--tr"></span>
+        <span class="frame__corner frame__corner--bl"></span>
+        <span class="frame__corner frame__corner--br"></span>
+        <span class="frame__tick frame__tick--t"></span>
+        <span class="frame__tick frame__tick--b"></span>
+        <span class="frame__tick frame__tick--l"></span>
+        <span class="frame__tick frame__tick--r"></span>
+      </div>
+
+      <aside class="rail rail--left" aria-hidden="true">
+        <div class="rail__greeble"></div>
+      </aside>
+
+      <aside class="rail rail--right" aria-hidden="true">
+        <div class="rail__greeble rail__greeble--mirror"></div>
+      </aside>
+
+      <header class="hud-top">
+        <h1 class="brand">Говорящая голова</h1>
+        <p class="status" id="status">Загрузка…</p>
+      </header>
+
+      <canvas id="viewport"></canvas>
+
+      <div class="chat-ray" id="chat-ray" aria-hidden="true"></div>
+
+      <div class="chat-line">
+        <p class="chat-line__label">Сообщение</p>
+        <div class="chat-line__field" id="chat-field">
+          <span class="chat-line__prompt">&gt;</span>
+          <span class="chat-line__ghost" id="chat-ghost">печатай</span>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="js/viewer.js"></script>
+    <script>
+      window.addEventListener("error", (e) => {
+        const el = document.getElementById("status");
+        if (el) {
+          el.textContent = "Ошибка: " + (e.message || "см. консоль");
+          el.classList.add("is-error");
+        }
+      });
+      window.addEventListener("unhandledrejection", (e) => {
+        const el = document.getElementById("status");
+        if (el) {
+          el.textContent =
+            "Ошибка: " + (e.reason?.message || String(e.reason) || "см. консоль");
+          el.classList.add("is-error");
+        }
+      });
+    </script>
+  </body>
+</html>

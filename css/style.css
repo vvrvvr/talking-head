@@ -1,0 +1,514 @@
+:root {
+  --paper: #eef0ee;
+  --paper-dim: #e2e5e2;
+  --ink: #0a0a0a;
+  --ink-soft: #2a2a2a;
+  --ink-faint: rgba(10, 10, 10, 0.12);
+  --ink-mid: rgba(10, 10, 10, 0.35);
+  --warn: #8b1a1a;
+  --ok: #0a0a0a;
+  --frame-inset: clamp(0.85rem, 2vw, 1.5rem);
+  --font-display: "Share Tech Mono", "IBM Plex Mono", ui-monospace, monospace;
+  --font-ui: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  cursor: crosshair;
+}
+
+#app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 42%, #f7f8f7 0%, transparent 70%),
+    var(--paper);
+}
+
+/* Reference schematic wash — cyber-techno silhouette */
+.schematic-wash {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("../assets/schematic.png");
+  background-repeat: no-repeat;
+  background-position: 108% 18%;
+  background-size: min(58vw, 720px) auto;
+  opacity: 0.14;
+  filter: contrast(1.35) brightness(1.05);
+  animation: wash-drift 28s ease-in-out infinite alternate;
+}
+
+.schematic-wash::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("../assets/schematic.png");
+  background-repeat: no-repeat;
+  background-position: -18% 72%;
+  background-size: min(42vw, 520px) auto;
+  opacity: 0.55;
+  transform: scaleX(-1);
+  filter: contrast(1.4);
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--ink-faint) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ink-faint) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 65% 60% at 50% 45%, black 20%, transparent 75%);
+  opacity: 0.7;
+}
+
+.scanline {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  overflow: hidden;
+  mix-blend-mode: multiply;
+}
+
+.scanline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 28%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(10, 10, 10, 0.04),
+    transparent
+  );
+  animation: scan-sweep 5.5s linear infinite;
+}
+
+#viewport {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+/* Outer technical frame */
+.frame {
+  position: absolute;
+  inset: var(--frame-inset);
+  z-index: 5;
+  pointer-events: none;
+  border: 1px solid var(--ink);
+}
+
+.frame__corner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--ink);
+}
+
+.frame__corner--tl {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.frame__corner--tr {
+  top: -1px;
+  right: -1px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.frame__corner--bl {
+  bottom: -1px;
+  left: -1px;
+  border-right: none;
+  border-top: none;
+}
+
+.frame__corner--br {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+}
+
+.frame__tick {
+  position: absolute;
+  background: var(--ink);
+}
+
+.frame__tick--t,
+.frame__tick--b {
+  left: 50%;
+  width: 1px;
+  height: 10px;
+  transform: translateX(-50%);
+}
+
+.frame__tick--t {
+  top: -1px;
+}
+
+.frame__tick--b {
+  bottom: -1px;
+}
+
+.frame__tick--l,
+.frame__tick--r {
+  top: 50%;
+  width: 10px;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.frame__tick--l {
+  left: -1px;
+}
+
+.frame__tick--r {
+  right: -1px;
+}
+
+/* Side rails / greeble strips */
+.rail {
+  position: absolute;
+  top: calc(var(--frame-inset) + 4.5rem);
+  bottom: calc(var(--frame-inset) + 4.25rem);
+  z-index: 5;
+  width: 2.75rem;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.rail--left {
+  left: calc(var(--frame-inset) + 0.55rem);
+}
+
+.rail--right {
+  right: calc(var(--frame-inset) + 0.55rem);
+  align-items: flex-end;
+}
+
+.rail__greeble {
+  flex: 1;
+  width: 14px;
+  border-left: 1px solid var(--ink);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      var(--ink) 0 2px,
+      transparent 2px 7px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 18px,
+      var(--ink) 18px 19px,
+      transparent 19px 34px,
+      var(--ink) 34px 40px,
+      transparent 40px 52px
+    );
+  opacity: 0.85;
+  position: relative;
+}
+
+.rail__greeble::before,
+.rail__greeble::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 22px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+}
+
+.rail__greeble::before {
+  top: 12%;
+  height: 28px;
+  border-left: none;
+}
+
+.rail__greeble::after {
+  bottom: 18%;
+  height: 54px;
+  border-left: none;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      var(--ink) 0 1px,
+      var(--paper) 1px 4px
+    );
+}
+
+.rail__greeble--mirror {
+  border-left: none;
+  border-right: 1px solid var(--ink);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      var(--ink) 0 2px,
+      transparent 2px 6px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 22px,
+      var(--ink) 22px 23px,
+      transparent 23px 40px,
+      var(--ink) 40px 48px,
+      transparent 48px 60px
+    );
+}
+
+.rail__greeble--mirror::before,
+.rail__greeble--mirror::after {
+  left: auto;
+  right: 0;
+  border-right: none;
+  border-left: 1px solid var(--ink);
+}
+
+/* Top HUD */
+.hud-top {
+  position: absolute;
+  top: calc(var(--frame-inset) + 0.65rem);
+  left: calc(var(--frame-inset) + 0.85rem);
+  right: calc(var(--frame-inset) + 0.85rem);
+  z-index: 6;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  pointer-events: none;
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.8vw, 2rem);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  position: relative;
+  padding-left: 0.85rem;
+}
+
+.brand::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  bottom: 0.1em;
+  width: 3px;
+  background: var(--ink);
+  box-shadow: 6px 0 0 var(--ink);
+}
+
+.status {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-mid);
+}
+
+.status.is-ready {
+  color: var(--ink-soft);
+  opacity: 0.55;
+}
+
+.status.is-error {
+  color: var(--warn);
+  opacity: 1;
+}
+
+/* Chat field — bottom center under the head */
+.chat-line {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--frame-inset) + 1.75rem);
+  transform: translateX(-50%);
+  z-index: 7;
+  width: min(480px, 82vw);
+  pointer-events: none;
+}
+
+.chat-line__label {
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  color: var(--ink-mid);
+  margin-bottom: 0.45rem;
+  text-transform: uppercase;
+}
+
+.chat-line__field {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 3.4rem;
+  border: 2px solid var(--ink);
+  background: rgba(238, 240, 238, 0.94);
+  box-shadow:
+    4px 4px 0 var(--ink),
+    inset 0 0 0 1px rgba(10, 10, 10, 0.06);
+  overflow: hidden;
+}
+
+.chat-line__field::before,
+.chat-line__field::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  z-index: 2;
+}
+
+.chat-line__field::before {
+  top: -2px;
+  left: -2px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.chat-line__field::after {
+  bottom: -2px;
+  right: -2px;
+  border-left: none;
+  border-top: none;
+}
+
+.chat-line__prompt {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: var(--ink);
+}
+
+.chat-line__ghost {
+  position: absolute;
+  left: 2.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-mid);
+  text-transform: lowercase;
+}
+
+/* Reflected text ray — glyphs stay inside the viewport */
+.chat-ray {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.chat-ray__glyph,
+.chat-ray__cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 2.1vw, 1.4rem);
+  letter-spacing: 0.12em;
+  line-height: 1;
+  color: var(--ink);
+  white-space: pre;
+  will-change: transform;
+  text-shadow:
+    1px 0 0 var(--paper),
+    -1px 0 0 var(--paper),
+    0 1px 0 var(--paper);
+}
+
+.chat-ray__cursor {
+  width: 0.55em;
+  height: 1.05em;
+  background: var(--ink);
+  animation: cursor-blink 1.05s steps(1, end) infinite;
+}
+
+@keyframes cursor-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes scan-sweep {
+  0% {
+    transform: translateY(-120%);
+  }
+  100% {
+    transform: translateY(420%);
+  }
+}
+
+@keyframes wash-drift {
+  from {
+    background-position: 106% 16%;
+  }
+  to {
+    background-position: 112% 22%;
+  }
+}
+
+@media (max-width: 720px) {
+  .rail {
+    display: none;
+  }
+
+  .schematic-wash {
+    opacity: 0.08;
+    background-position: 120% 30%;
+    background-size: 90vw auto;
+  }
+
+  .brand {
+    font-size: 1.15rem;
+  }
+
+  .chat-line {
+    bottom: calc(var(--frame-inset) + 1.25rem);
+    width: min(480px, 90vw);
+  }
+}

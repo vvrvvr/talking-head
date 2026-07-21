@@ -1,0 +1,16 @@
+{
+  "name": "talking-head",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx --yes serve -l 8080 .",
+    "dev": "python -m http.server 8080"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "three": "^0.170.0"
+  }
+}
