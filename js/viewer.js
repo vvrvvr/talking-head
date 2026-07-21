@@ -449,7 +449,7 @@ loader.load(
     blendControl = createBlendKeyController(fbx);
     blendControl.attach(window);
 
-    setStatus("Готово", "is-ready");
+    setStatus("", "is-ready");
 
     window.__talkingHead = fbx;
     window.__blendControl = blendControl;
