@@ -386,6 +386,58 @@ const typewriter = createTypewriterLine({
 typewriter.attach(window);
 window.__typewriter = typewriter;
 
+const chatField = document.getElementById("chat-field");
+const POINTER_CODE = "PointerTap";
+let pointerArmed = false;
+
+function onChatPointerDown(event) {
+  if (event.button != null && event.button !== 0) return;
+  pointerArmed = true;
+  chatField.classList.add("is-pressed");
+  blendControl?.press(POINTER_CODE);
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+function onChatPointerUp(event) {
+  if (!pointerArmed) return;
+  pointerArmed = false;
+  chatField.classList.remove("is-pressed");
+  blendControl?.release(POINTER_CODE);
+  typewriter.advance();
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+function onChatPointerCancel() {
+  if (!pointerArmed) return;
+  pointerArmed = false;
+  chatField.classList.remove("is-pressed");
+  blendControl?.release(POINTER_CODE);
+}
+
+chatField.addEventListener("pointerdown", onChatPointerDown);
+chatField.addEventListener("pointerup", onChatPointerUp);
+chatField.addEventListener("pointerleave", onChatPointerCancel);
+chatField.addEventListener("pointercancel", onChatPointerCancel);
+chatField.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (e.repeat) return;
+  chatField.classList.add("is-pressed");
+  blendControl?.press(POINTER_CODE);
+  typewriter.advance();
+  blendControl?.release(POINTER_CODE);
+  requestAnimationFrame(() => chatField.classList.remove("is-pressed"));
+});
+chatField.addEventListener("keyup", (e) => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+});
+
 const loader = new FBXLoader(manager);
 loader.load(
   "models/kelly.fbx",
@@ -435,6 +487,15 @@ function animate() {
 
   blendControl?.update();
   updateTypingZoom(dt);
+
+  const zoomSpan = TYPE_ZOOM.startDist - TYPE_ZOOM.endDist;
+  const zoomProgress =
+    zoomSpan > 1e-6
+      ? Math.min(1, Math.max(0, (TYPE_ZOOM.startDist - homeDistance) / zoomSpan))
+      : 0;
+  typewriter.setZoomProgress(zoomProgress);
+  typewriter.update();
+
   if (!returning) controls.update();
   updateCameraReturn();
   renderer.render(scene, camera);

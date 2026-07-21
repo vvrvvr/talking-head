@@ -157,8 +157,63 @@ export function createTypewriterLine(opts) {
 
   /** @type {HTMLSpanElement[]} */
   const glyphs = [];
+  /** @type {{ x: number, y: number, angle: number }[]} */
+  const glyphPose = [];
+  /** @type {{ x: number, y: number, angle: number } | null} */
+  let cursorPose = null;
   /** @type {Map<string, number>} */
   const widthCache = new Map();
+
+  /** 0 = calm, 1 = max zoom → max shake & size */
+  let zoomProgress = 0;
+
+  const FX = {
+    /** max translate jitter in px at full zoom */
+    shake: 4,
+    /** max extra rotation jitter in deg */
+    twist: 3,
+    /** max scale boost (1.28 = +28%) */
+    scaleBoost: 0.28,
+  };
+
+  function setZoomProgress(t) {
+    zoomProgress = Math.min(1, Math.max(0, t));
+  }
+
+  function paintGlyphs() {
+    if (!glyphs.length) return;
+
+    const p = zoomProgress;
+    // Stronger ramp near the end of the zoom
+    const intensity = p * p;
+    const shake = intensity * FX.shake;
+    const twist = intensity * FX.twist;
+    const scale = 1 + p * FX.scaleBoost;
+
+    for (let i = 0; i < glyphs.length; i++) {
+      const pose = glyphPose[i];
+      const g = glyphs[i];
+      if (!pose || !g) continue;
+
+      const sx = (Math.random() - 0.5) * 2 * shake;
+      const sy = (Math.random() - 0.5) * 2 * shake;
+      const rj = (Math.random() - 0.5) * 2 * twist;
+
+      g.style.transform = `translate(${pose.x + sx}px, ${pose.y + sy}px) rotate(${pose.angle + rj}deg) translate(-50%, -50%) scale(${scale})`;
+    }
+
+    const cursor = rayEl.querySelector(".chat-ray__cursor");
+    if (cursor && cursorPose) {
+      const sx = (Math.random() - 0.5) * shake;
+      const sy = (Math.random() - 0.5) * shake;
+      cursor.style.transform = `translate(${cursorPose.x + sx}px, ${cursorPose.y + sy}px) rotate(${cursorPose.angle}deg) translate(-50%, -50%) scale(${scale})`;
+    }
+  }
+
+  function update() {
+    if (typed.length === 0) return;
+    paintGlyphs();
+  }
 
   function measureCharWidth(ch) {
     const key = ch === " " ? " " : ch;
@@ -224,6 +279,8 @@ export function createTypewriterLine(opts) {
     if (typed.length === 0) {
       rayEl.replaceChildren();
       glyphs.length = 0;
+      glyphPose.length = 0;
+      cursorPose = null;
       return;
     }
 
@@ -248,11 +305,15 @@ export function createTypewriterLine(opts) {
       pts = buildReflectPath(startX, startY, 1, -0.55, total + 80, bounds);
     }
 
+    glyphPose.length = 0;
     let dist = 0;
     for (let i = 0; i < typed.length; i++) {
       const sample = samplePath(pts, dist + widths[i] * 0.5);
-      const g = glyphs[i];
-      g.style.transform = `translate(${sample.x}px, ${sample.y}px) rotate(${sample.angle}deg) translate(-50%, -50%)`;
+      glyphPose.push({
+        x: sample.x,
+        y: sample.y,
+        angle: sample.angle,
+      });
       dist += widths[i];
     }
 
@@ -264,7 +325,9 @@ export function createTypewriterLine(opts) {
       rayEl.appendChild(cursor);
     }
     const cSample = samplePath(pts, dist + cursorW * 0.5);
-    cursor.style.transform = `translate(${cSample.x}px, ${cSample.y}px) rotate(${cSample.angle}deg) translate(-50%, -50%)`;
+    cursorPose = { x: cSample.x, y: cSample.y, angle: cSample.angle };
+
+    paintGlyphs();
   }
 
   function advance() {
@@ -278,6 +341,10 @@ export function createTypewriterLine(opts) {
   function onKeyDown(event) {
     if (event.repeat) return;
     if (!isChatKey(event)) return;
+    if (event.target instanceof Element) {
+      const tag = event.target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON") return;
+    }
     advance();
     event.preventDefault();
   }
@@ -296,5 +363,12 @@ export function createTypewriterLine(opts) {
     };
   }
 
-  return { attach, advance, getText: () => typed, relayout: layout };
+  return {
+    attach,
+    advance,
+    getText: () => typed,
+    relayout: layout,
+    setZoomProgress,
+    update,
+  };
 }

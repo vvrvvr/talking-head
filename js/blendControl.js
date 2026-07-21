@@ -84,16 +84,13 @@ export function createBlendKeyController(root, config = BLEND_CONFIG) {
   /** @type {Map<string, string[]>} keyCode → channel ids claimed while held */
   const keyClaims = new Map();
 
-  const onKeyDown = (event) => {
-    if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return;
-    if (shouldIgnoreTarget(event.target)) return;
-    if (!isChatKey(event)) return;
-    if (heldKeys.has(event.code)) return;
+  function press(code) {
+    if (heldKeys.has(code)) return false;
 
-    heldKeys.add(event.code);
+    heldKeys.add(code);
 
     const free = [...runtime.values()].filter((ch) => ch.heldBy === null);
-    if (free.length === 0) return;
+    if (free.length === 0) return true;
 
     const count = Math.min(cfg.shapesPerKey, free.length);
     const picked = pickRandom(free, count);
@@ -101,7 +98,7 @@ export function createBlendKeyController(root, config = BLEND_CONFIG) {
     const ids = [];
 
     for (const ch of picked) {
-      ch.heldBy = event.code;
+      ch.heldBy = code;
       ids.push(ch.id);
 
       const current = ch.mesh.morphTargetInfluences[ch.index] ?? 0;
@@ -120,25 +117,25 @@ export function createBlendKeyController(root, config = BLEND_CONFIG) {
       };
     }
 
-    keyClaims.set(event.code, ids);
-    event.preventDefault();
-  };
+    keyClaims.set(code, ids);
+    return true;
+  }
 
-  const onKeyUp = (event) => {
-    if (!heldKeys.has(event.code)) return;
-    heldKeys.delete(event.code);
+  function release(code) {
+    if (!heldKeys.has(code)) return false;
+    heldKeys.delete(code);
 
-    const ids = keyClaims.get(event.code) || [];
-    keyClaims.delete(event.code);
+    const ids = keyClaims.get(code) || [];
+    keyClaims.delete(code);
 
     const now = performance.now() / 1000;
 
     for (const id of ids) {
       const ch = runtime.get(id);
-      if (!ch || ch.heldBy !== event.code) continue;
+      if (!ch || ch.heldBy !== code) continue;
 
       const current = ch.mesh.morphTargetInfluences[ch.index] ?? 0;
-      ch.heldBy = null; // free immediately — spam / other keys can reclaim
+      ch.heldBy = null;
       ch.tween = {
         from: current,
         to: ch.rest,
@@ -148,14 +145,25 @@ export function createBlendKeyController(root, config = BLEND_CONFIG) {
       };
     }
 
+    return true;
+  }
+
+  const onKeyDown = (event) => {
+    if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return;
+    if (shouldIgnoreTarget(event.target)) return;
+    if (!isChatKey(event)) return;
+    if (!press(event.code)) return;
+    event.preventDefault();
+  };
+
+  const onKeyUp = (event) => {
+    if (!release(event.code)) return;
     event.preventDefault();
   };
 
   // If the window loses focus mid-hold, release everything cleanly
   const onBlur = () => {
-    for (const code of [...heldKeys]) {
-      onKeyUp({ code, preventDefault() {} });
-    }
+    for (const code of [...heldKeys]) release(code);
   };
 
   function update() {
@@ -206,13 +214,18 @@ export function createBlendKeyController(root, config = BLEND_CONFIG) {
     };
   }
 
-  return { attach, update, getDebugState, channels };
+  return { attach, update, getDebugState, channels, press, release };
 }
 
 function shouldIgnoreTarget(target) {
   if (!target || !(target instanceof Element)) return false;
   const tag = target.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable;
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "BUTTON" ||
+    target.isContentEditable
+  );
 }
 
 function collectChannels(root, excludeNames) {
